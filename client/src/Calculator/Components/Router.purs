@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe ( Maybe(..), fromMaybe )
 import Data.Either ( hush )
+import Data.Symbol ( SProxy(..) )
 
 import Effect.Class ( class MonadEffect )
 
@@ -16,6 +17,8 @@ import Routing.Hash ( getHash )
 
 import Calculator.Routes ( Route(..), routeCodec )
 import Calculator.Navigate ( class Navigate, navigate )
+import Calculator.Components.OpaqueSlot ( OpaqueSlot )
+import Calculator.Components.SelfIntro as SelfIntro
 
 type State =
   { route :: Maybe Route
@@ -27,7 +30,9 @@ data Action
   = Initialize
   | GoTo Route
 
-type Slots = ()
+type Slots =
+  ( selfintro :: OpaqueSlot Unit
+  )
 
 component :: forall i o m.
              MonadEffect m
@@ -43,10 +48,15 @@ component = H.mkComponent
     }
   }
 
-render :: forall m. State -> H.ComponentHTML Action Slots m
+render :: forall m.
+          MonadEffect m
+       => Navigate m
+       => State
+       -> H.ComponentHTML Action Slots m
 render state = case state.route of
   Nothing -> HH.h1_ [ HH.text "Couldn't find that page." ]
-  Just SelfIntro -> HH.h1_ [ HH.text "What's your name?" ]
+  Just SelfIntro ->
+    HH.slot (SProxy :: _ "selfintro") unit SelfIntro.component unit absurd
   Just Calculator -> HH.h1_ [ HH.text "CALC-U-LATOR 3XXX" ]
 
 handleQuery :: forall a o m. Query a -> H.HalogenM State Action Slots o m ( Maybe a )
@@ -65,6 +75,8 @@ handleAction :: forall o m.
 handleAction = case _ of
   Initialize -> do
     initialRoute <- hush <<< ( parse routeCodec ) <$> H.liftEffect getHash
+    -- If we can't parse the route into something we expect, just go to
+    -- the self-intro page by default
     navigate $ fromMaybe SelfIntro initialRoute
   GoTo dest -> do
     here <- H.gets _.route
