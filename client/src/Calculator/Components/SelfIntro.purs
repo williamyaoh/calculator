@@ -22,7 +22,8 @@ type State =
   }
 
 data Action
-  = UpdateName String
+  = Initialize
+  | UpdateName String
   | Submit Event
 
 type Slots = ()
@@ -36,6 +37,7 @@ component = H.mkComponent
   , render
   , eval: H.mkEval $ H.defaultEval
     { handleAction = handleAction
+    , initialize = Just Initialize
     }
   }
 
@@ -44,7 +46,7 @@ render state =
   HH.div_
     [ HH.text state.name
     , HH.form [ HE.onSubmit (Just <<< Submit) ]
-      [ HH.input [ HP.type_ HP.InputText ]
+      [ HH.input [ HP.type_ HP.InputText, HE.onValueInput (Just <<< UpdateName) ]
       , button "To the calculator!"
       ]
     ]
@@ -59,9 +61,17 @@ handleAction :: forall o m.
              => Action
              -> H.HalogenM State Action Slots o m Unit
 handleAction = case _ of
+  Initialize -> do
+    mCookie <- liftEffect $ getCookie "name"
+    case mCookie of
+      Nothing -> pure unit
+      Just _ -> navigate Calculator  -- if name already set, go directly to calculator
   UpdateName name ->
     H.modify_ _ { name = name }
   Submit e -> do
+    -- Because we're only asking for a name and we don't care about
+    -- doing any sort of authentication, it's okay to just store
+    -- this data in a cookie and not do any backend auth here.
     liftEffect $ preventDefault e
     name <- H.gets _.name
     liftEffect $

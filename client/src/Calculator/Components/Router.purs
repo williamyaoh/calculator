@@ -10,7 +10,6 @@ import Effect.Class ( class MonadEffect )
 
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Events as HE
 
 import Routing.Duplex ( parse )
 import Routing.Hash ( getHash )
