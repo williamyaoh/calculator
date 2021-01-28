@@ -1,0 +1,16 @@
+# Editor temp files
+
+*~
+#*#
+
+# Haskell build outputs
+
+.stack-work/
+dist-newstyle/
+
+# PureScript build outputs
+
+.spago
+.psci-modules
+/client/output/
+/server/bundle/
