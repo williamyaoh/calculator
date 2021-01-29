@@ -7,6 +7,7 @@ import Data.Either ( hush )
 import Data.Symbol ( SProxy(..) )
 
 import Effect.Class ( class MonadEffect )
+import Effect.Aff.Class ( class MonadAff )
 
 import Halogen as H
 import Halogen.HTML as HH
@@ -18,6 +19,7 @@ import Calculator.Routes ( Route(..), routeCodec )
 import Calculator.Navigate ( class Navigate, navigate )
 import Calculator.Components.OpaqueSlot ( OpaqueSlot )
 import Calculator.Components.SelfIntro as SelfIntro
+import Calculator.Components.Calculator as Calculator
 
 type State =
   { route :: Maybe Route
@@ -31,10 +33,11 @@ data Action
 
 type Slots =
   ( selfintro :: OpaqueSlot Unit
+  , calculator :: OpaqueSlot Unit
   )
 
 component :: forall i o m.
-             MonadEffect m
+             MonadAff m
           => Navigate m
           => H.Component HH.HTML Query i o m
 component = H.mkComponent
@@ -48,7 +51,7 @@ component = H.mkComponent
   }
 
 render :: forall m.
-          MonadEffect m
+          MonadAff m
        => Navigate m
        => State
        -> H.ComponentHTML Action Slots m
@@ -56,7 +59,8 @@ render state = case state.route of
   Nothing -> HH.h1_ [ HH.text "Couldn't find that page." ]
   Just SelfIntro ->
     HH.slot (SProxy :: _ "selfintro") unit SelfIntro.component unit absurd
-  Just Calculator -> HH.h1_ [ HH.text "CALC-U-LATOR 3XXX" ]
+  Just Calculator ->
+    HH.slot (SProxy :: _ "calculator") unit Calculator.component unit absurd
 
 handleQuery :: forall a o m. Query a -> H.HalogenM State Action Slots o m ( Maybe a )
 handleQuery = case _ of
