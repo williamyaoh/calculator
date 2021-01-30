@@ -79,7 +79,7 @@ handleAction :: forall o m.
              -> H.HalogenM State Action Slots o m Unit
 handleAction = case _ of
   Initialize -> do
-    initState
+    checkName
     initSocket
     subscribeEvents
   Finalize -> do
@@ -97,11 +97,11 @@ handleAction = case _ of
       Left errs -> log (show errs)
       Right s -> log s
 
-initState :: forall o m.
-            MonadAff m
-         => Navigate m
-         => H.HalogenM State Action Slots o m Unit
-initState = do
+checkName :: forall o m.
+             MonadAff m
+          => Navigate m
+          => H.HalogenM State Action Slots o m Unit
+checkName = do
   mName <- liftEffect $ Storage.getItem "name" =<< localStorage
   case mName of
     Nothing -> navigate SelfIntro
@@ -117,6 +117,7 @@ initSocket = do
       onMessage
       (WS.toEventTarget socket)
       (map Message <<< WSM.fromEvent)
+  H.modify_ _ { conn = Just socket }
 
 subscribeEvents :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 subscribeEvents = do
