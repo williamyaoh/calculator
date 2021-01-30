@@ -19,7 +19,7 @@ import Calculator.Routes ( Route(..), routeCodec )
 import Calculator.Navigate ( class Navigate, navigate )
 import Calculator.Components.OpaqueSlot ( OpaqueSlot )
 import Calculator.Components.SelfIntro as SelfIntro
-import Calculator.Components.Calculator as Calculator
+import Calculator.Components.CalculatorPage as Calculator
 
 type State =
   { route :: Maybe Route
