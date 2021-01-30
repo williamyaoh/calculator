@@ -3,6 +3,8 @@ module Calculator.Components.Calculator where
 import Prelude
 
 import Data.Maybe ( Maybe(..) )
+import Data.Either ( Either(..) )
+import Control.Monad.Except ( runExcept )
 
 import Effect.Class ( liftEffect )
 import Effect.Aff.Class ( class MonadAff )
@@ -20,6 +22,11 @@ import Web.Storage.Storage as Storage
 import Web.Event.Event ( preventDefault )
 import Web.UIEvent.KeyboardEvent as KB
 import Web.UIEvent.KeyboardEvent.EventTypes as KBE
+import Web.Socket.WebSocket as WS
+import Web.Socket.Event.EventTypes ( onMessage )
+import Web.Socket.Event.MessageEvent as WSM
+
+import Foreign as F
 
 import Effect.Console ( log )
 
@@ -36,6 +43,7 @@ data Action
   = Initialize
   | Keydown KB.KeyboardEvent
   | Keypress KB.KeyboardEvent
+  | Message WSM.MessageEvent
 
 type Slots = ()
 
@@ -67,6 +75,7 @@ handleAction :: forall o m.
 handleAction = case _ of
   Initialize -> do
     initState
+    initSocket
     subscribeEvents
   Keydown e ->
     -- This is here to intercept forward slash before it's handled
@@ -76,6 +85,10 @@ handleAction = case _ of
   Keypress e -> do
     liftEffect $ preventDefault $ KB.toEvent e
     liftEffect $ log $ KB.key e
+  Message m -> do
+    liftEffect $ case runExcept (F.readString $ WSM.data_ m) of
+      Left errs -> log (show errs)
+      Right s -> log s
 
 initState :: forall o m.
             MonadAff m
@@ -86,6 +99,17 @@ initState = do
   case mName of
     Nothing -> navigate SelfIntro
     Just name -> H.modify_ _ { name = name }
+
+initSocket :: forall o m.
+              MonadAff m
+           => H.HalogenM State Action Slots o m Unit
+initSocket = do
+  socket <- liftEffect $ WS.create "ws://localhost:8000/app/socket" []
+  void $ H.subscribe $
+    eventListenerEventSource
+      onMessage
+      (WS.toEventTarget socket)
+      (map Message <<< WSM.fromEvent)
 
 subscribeEvents :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 subscribeEvents = do

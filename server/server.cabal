@@ -41,4 +41,10 @@ executable server-exe
     , warp
     , blaze-html
     , string-interpolate
+    , websockets
+    , wai-websockets
+    , wai
+    , http-types
+    , bytestring
+    , text
   default-language: Haskell2010
