@@ -5,7 +5,6 @@ You can edit this file as you like.
 { name = "my-project"
 , dependencies =
   [ "affjax"
-  , "browser-cookies"
   , "console"
   , "effect"
   , "halogen"
