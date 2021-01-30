@@ -12,10 +12,11 @@ import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 
 import Web.Event.Event ( Event, preventDefault )
+import Web.Storage.Storage as Storage
 
 import Calculator.Routes ( Route(..) )
 import Calculator.Navigate ( class Navigate, navigate )
-import Calculator.Cookies
+import Calculator.LocalStorage ( localStorage )
 
 type State =
   { name :: String
@@ -46,7 +47,11 @@ render state =
   HH.div_
     [ HH.text state.name
     , HH.form [ HE.onSubmit (Just <<< Submit) ]
-      [ HH.input [ HP.type_ HP.InputText, HE.onValueInput (Just <<< UpdateName) ]
+      [ HH.input
+        [ HP.type_ HP.InputText
+        , HP.required true
+        , HE.onValueInput (Just <<< UpdateName)
+        ]
       , button "To the calculator!"
       ]
     ]
@@ -62,18 +67,17 @@ handleAction :: forall o m.
              -> H.HalogenM State Action Slots o m Unit
 handleAction = case _ of
   Initialize -> do
-    mCookie <- liftEffect $ getCookie "name"
-    case mCookie of
+    mName <- liftEffect $ Storage.getItem "name" =<< localStorage
+    case mName of
       Nothing -> pure unit
       Just _ -> navigate Calculator  -- if name already set, go directly to calculator
   UpdateName name ->
     H.modify_ _ { name = name }
   Submit e -> do
     -- Because we're only asking for a name and we don't care about
-    -- doing any sort of authentication, it's okay to just store
-    -- this data in a cookie and not do any backend auth here.
+    -- doing any sort of authentication, it's okay to not do any sort
+    -- of auth and just put the name in localStorage.
     liftEffect $ preventDefault e
     name <- H.gets _.name
-    liftEffect $
-      setCookie (Cookie { key: "name", value: name }) defaultCookieOpts
+    liftEffect $ Storage.setItem "name" name =<< localStorage
     navigate Calculator
