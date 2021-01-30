@@ -4,6 +4,7 @@ import Prelude
 
 import Data.Maybe ( Maybe(..) )
 import Data.Either ( Either(..) )
+import Data.Foldable ( traverse_ )
 import Control.Monad.Except ( runExcept )
 
 import Effect.Class ( liftEffect )
@@ -37,10 +38,12 @@ import Calculator.LocalStorage ( localStorage )
 type State =
   { calculation :: String
   , name        :: String
+  , conn        :: Maybe WS.WebSocket
   }
 
 data Action
   = Initialize
+  | Finalize
   | Keydown KB.KeyboardEvent
   | Keypress KB.KeyboardEvent
   | Message WSM.MessageEvent
@@ -55,17 +58,19 @@ component = H.mkComponent
   { initialState: const
     { calculation: ""
     , name: ""
+    , conn: Nothing
     }
   , render
   , eval: H.mkEval $ H.defaultEval
     { handleAction = handleAction
     , initialize = Just Initialize
+    , finalize = Just Finalize
     }
   }
 
 render :: forall m. State -> H.ComponentHTML Action Slots m
 render state =
-  HH.div_ [ HH.text $ show state ]
+  HH.div_ [ HH.text $ show state.name ]
 
 handleAction :: forall o m.
                 MonadAff m
@@ -77,9 +82,11 @@ handleAction = case _ of
     initState
     initSocket
     subscribeEvents
+  Finalize -> do
+    mConn <- H.gets _.conn
+    liftEffect $ traverse_ WS.close mConn
   Keydown e ->
-    -- This is here to intercept forward slash before it's handled
-    -- by the browser.
+    -- To intercept forward slash before it's handled by the browser.
     when (KB.key e == "/") do
       liftEffect $ preventDefault $ KB.toEvent e
   Keypress e -> do
