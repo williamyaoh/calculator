@@ -6,7 +6,7 @@
 
 module Calculator.Expr
   ( Token(..), Expr(..)
-  , displayTokens, tokensToExpr
+  , displayTokens, tokensToExpr, exprToJSON
   , expr, token, number
   )
 where
@@ -21,6 +21,10 @@ import Data.Array ( some, unsnoc, zip, length, (..) )
 import Data.Int ( toNumber )
 import Data.Either ( Either(..) )
 import Data.Enum ( upFromIncluding )
+import Data.Argonaut.Core ( Json, fromNumber, fromString, fromArray, fromObject )
+
+import Foreign.Object ( Object )
+import Foreign.Object as Object
 
 import Text.Parsing.Parser ( Parser, ParseError, runParser )
 import Text.Parsing.Parser.Pos ( Position(..) )
@@ -69,12 +73,32 @@ displayTokens = foldMap display
     display MultiplyToken = "*"
     display (DigitToken i) = show i
 
-type ParseInput = List (Tuple Int Token)
+exprToJSON :: Expr -> Json
+exprToJSON = case _ of
+  Plus left right -> operator "plus" (exprToJSON left) (exprToJSON right)
+  Minus left right -> operator "minus" (exprToJSON left) (exprToJSON right)
+  Divide left right -> operator "divide" (exprToJSON left) (exprToJSON right)
+  Multiply left right -> operator "multiply" (exprToJSON left) (exprToJSON right)
+  NumberExpr n -> number n
+  where
+    operator :: String -> Json -> Json -> Json
+    operator name left right = fromObject $ Object.empty
+      # Object.insert "type" (fromString "operator")
+      # Object.insert "name" (fromString name)
+      # Object.insert "left" left
+      # Object.insert "right" right
+
+    number :: Number -> Json
+    number n = fromObject $ Object.empty
+      # Object.insert "type" (fromString "atom")
+      # Object.insert "value" (fromNumber n)
 
 tokensToExpr :: Array Token -> Either ParseError Expr
 tokensToExpr tokens =
   let indexed = fromFoldable $ zip (1..length tokens) tokens
   in runParser indexed expr
+
+type ParseInput = List (Tuple Int Token)
 
 expr :: Parser ParseInput Expr
 expr = flip buildExprParser (map NumberExpr number)
