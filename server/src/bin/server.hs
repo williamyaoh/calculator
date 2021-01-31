@@ -4,6 +4,7 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE QuasiQuotes #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Main where
 
@@ -13,9 +14,10 @@ import Data.ByteString ( ByteString )
 import Data.Text ( Text )
 
 import Control.Monad ( forever, void )
+import Control.Monad.Error.Class ( MonadError )
 import Control.Concurrent ( threadDelay, forkIO )
 import Control.Concurrent.MVar
-import Control.Exception ( catch )
+import Control.Exception ( bracket, catch )
 
 import GHC.StableName ( StableName, makeStableName )
 
@@ -26,22 +28,31 @@ import Network.Wai.Handler.Warp ( run )
 import Network.Wai.Handler.WebSockets
 import Servant
 
+import Database.PostgreSQL.Simple as PG
+
 import Text.Blaze.Html5 as Blaze hiding ( i, main )
 import qualified Text.Blaze.Html5.Attributes as Blaze
 
+import Calculator.AppM ( AppM, AppConfig(..), runApp )
 import Calculator.Endpoints.HTML
+import qualified Calculator.Endpoints.Evaluate as Evaluate
+import qualified Calculator.Endpoints.Calculations as Calculations
 
 type SPAEndpoint = Get '[HTML] Blaze.Html
 
 type API =
        "app" :> "bundle" :> Raw
   :<|> "app" :> "socket" :> Raw
+  :<|> "app" :> "api" :>
+       ( "calculations" :> Calculations.API
+    :<|> "evaluate" :> Evaluate.API
+       )
   :<|> "app" :> SPAEndpoint
   :<|> Get '[HTML] Blaze.Html
 
 type Connections = [(StableName WS.Connection, WS.Connection)]
 
-spa :: Handler Blaze.Html
+spa :: AppM Blaze.Html
 spa = pure $! docTypeHtml $ do
   Blaze.head $ do
     title $ toHtml @String "CALC-U-LATOR 3XXX"
@@ -51,7 +62,7 @@ spa = pure $! docTypeHtml $ do
 serverP :: Proxy API
 serverP = Proxy
 
-redirect :: String -> Handler a
+redirect :: MonadError ServerError m => String -> m a
 redirect url = throwError $ err301
   { errHeaders = [("Location", [i|#{url}|])] }
 
@@ -86,10 +97,11 @@ socketServer conns = Tagged $
     backupApp _ respond = respond $
       responseLBS status400 [] "Not a WebSocket request"
 
-server :: MVar Connections -> Server API
+server :: MVar Connections -> ServerT API AppM
 server clients =
        serveDirectoryWebApp "./bundle/"
   :<|> socketServer clients
+  :<|> (Calculations.handler :<|> Evaluate.handler)
   :<|> spa
   :<|> redirect "/app/"
 
@@ -106,9 +118,26 @@ keepAlive conns = go 0
           WS.sendTextData conn ([i|hello!|] :: Text)
       go (n+1)
 
+--------------------------------------------------------------------------------
+
+connInfo :: PG.ConnectInfo
+connInfo = PG.ConnectInfo
+  { connectPort = 5432
+  , connectHost = "localhost"
+  , connectDatabase = "calculator"
+  , connectUser = "william"
+  , connectPassword = "password"
+  }
+
 main :: IO ()
 main = do
   putStrLn "starting calculator server on localhost:8000..."
   clients <- newMVar []
   void $ forkIO $ keepAlive clients
-  run 8000 $ serve serverP $ server clients
+  bracket (PG.connect connInfo) PG.close $ \conn -> do
+    let cfg = AppConfig
+          { appDB = conn
+          , appClients = clients
+          }
+    run 8000 $ serve serverP $
+      hoistServer serverP (runApp cfg) $ server clients

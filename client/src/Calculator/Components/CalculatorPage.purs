@@ -34,9 +34,10 @@ import Foreign as F
 import Effect.Console ( log )
 
 import Calculator.Routes ( Route(..) )
+import Calculator.Expr ( Expr )
+import Calculator.API ( evaluate )
 import Calculator.Navigate ( class Navigate, navigate )
 import Calculator.LocalStorage ( localStorage )
-import Calculator.Components.OpaqueSlot ( OpaqueSlot )
 import Calculator.Components.Calculator as Calculator
 
 type State =
@@ -51,9 +52,10 @@ data Action
   | Keydown KB.KeyboardEvent
   | Keypress KB.KeyboardEvent
   | Message WSM.MessageEvent
+  | EvalRequest Expr
 
 type Slots =
-  ( calculator :: OpaqueSlot Unit )
+  ( calculator :: forall query. H.Slot query Calculator.Output Unit )
 
 component :: forall q i o m.
              MonadAff m
@@ -73,9 +75,11 @@ component = H.mkComponent
     }
   }
 
-render :: forall m. State -> H.ComponentHTML Action Slots m
+render :: forall m. MonadAff m => State -> H.ComponentHTML Action Slots m
 render state =
-  HH.slot (SProxy :: _ "calculator") unit Calculator.component unit absurd
+  HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery)
+  where mapQuery :: Calculator.Output -> Action
+        mapQuery (Calculator.EvalRequest expr) = EvalRequest expr
 
 handleAction :: forall o m.
                 MonadAff m
@@ -101,6 +105,12 @@ handleAction = case _ of
     liftEffect $ case runExcept (F.readString $ WSM.data_ m) of
       Left errs -> log (show errs)
       Right s -> log s
+  EvalRequest expr -> do
+    name <- H.gets _.name
+    mCalc <- evaluate { user: name, expr }
+    case mCalc of
+      Nothing -> liftEffect $ log "something went wrong with evaluating"
+      Just calc -> liftEffect $ log $ show calc
 
 checkName :: forall o m.
              MonadAff m
@@ -154,11 +164,5 @@ subscribeEvents = do
 --     and we also want to align the results properly
 -- * A "hashing" function from names to colors
 
--- Write that parsing...
--- Then a JSON output for it on the frontend side
--- Then a JSON input for it on the backend side
--- Set up all the database stuff and evaluate results
--- Send back up any results to the calculator page. If we want to
---   be very precise about this, the calculator itself shouldn't
---   do the evaluation, instead the calculator page should be responsible
---   for managing the webhook and stuff.
+-- Hook up the keyboard events to the calculator itself, so that it actually
+--  does stuff...

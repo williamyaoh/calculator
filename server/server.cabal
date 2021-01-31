@@ -16,7 +16,12 @@ build-type:          Simple
 
 library
   exposed-modules:
+    Calculator.Expr
+    Calculator.Database
+    Calculator.AppM
     Calculator.Endpoints.HTML
+    Calculator.Endpoints.Evaluate
+    Calculator.Endpoints.Calculations
   hs-source-dirs: src/lib
   ghc-options: -Wall -Wcompat -Wincomplete-record-updates
                -Wincomplete-uni-patterns -Wredundant-constraints
@@ -24,8 +29,18 @@ library
   build-depends:
       base ==4.*
     , http-media
+    , servant-server
     , servant
     , blaze-html
+    , aeson
+    , text
+    , opaleye
+    , product-profunctors
+    , time
+    , transformers
+    , mtl
+    , postgresql-simple
+    , websockets
   default-language: Haskell2010
 
 executable server-exe
@@ -47,4 +62,6 @@ executable server-exe
     , http-types
     , bytestring
     , text
+    , postgresql-simple
+    , mtl
   default-language: Haskell2010

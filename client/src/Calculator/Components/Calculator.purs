@@ -5,6 +5,7 @@ import Prelude
 import Math as M
 
 import Data.Maybe ( Maybe(..), maybe )
+import Data.Either ( Either(..) )
 import Data.Array ( snoc, unsnoc )
 import Data.Int ( toNumber, round )
 import Data.Enum ( enumFromTo )
@@ -19,6 +20,12 @@ import Web.UIEvent.MouseEvent ( MouseEvent )
 
 import Calculator.Expr
 
+
+import Effect.Class ( class MonadEffect, liftEffect )
+import Effect.Console ( log )
+import Data.Argonaut.Core ( stringifyWithIndent )
+
+
 type State =
   { tokens :: Array Token
   }
@@ -29,9 +36,11 @@ data Action
   | Delete
   | Evaluate
 
+newtype Output = EvalRequest Expr
+
 type Slots = ()
 
-component :: forall q i o m. H.Component HH.HTML q i o m
+component :: forall q i m. MonadEffect m => H.Component HH.HTML q i Output m
 component = H.mkComponent
   { initialState: const
     { tokens: []
@@ -67,11 +76,18 @@ render state =
            ]
     ]
 
-handleAction :: forall o m. Action -> H.HalogenM State Action Slots o m Unit
+handleAction :: forall m. MonadEffect m => Action -> H.HalogenM State Action Slots Output m Unit
 handleAction = case _ of
   Initialize -> pure unit
   NewToken tok -> H.modify_ \st ->
     st { tokens = snoc st.tokens tok }
   Delete -> H.modify_ \st ->
     st { tokens = maybe st.tokens _.init $ unsnoc st.tokens }
-  Evaluate -> pure unit
+  Evaluate -> do
+    tok <- H.gets _.tokens
+    case tokensToExpr tok of
+      Left err -> liftEffect $ log $ show err
+      Right expr -> do
+        liftEffect $ log $ stringifyWithIndent 2 $ exprToJSON expr
+        H.raise (EvalRequest expr)
+    H.modify_ _ { tokens = [] }
