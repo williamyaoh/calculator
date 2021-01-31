@@ -102,11 +102,11 @@ type ParseInput = List (Tuple Int Token)
 
 expr :: Parser ParseInput Expr
 expr = flip buildExprParser (map NumberExpr number)
-  [ [ Infix (token DivideToken Divide) AssocRight
-    , Infix (token MultiplyToken Multiply) AssocRight
+  [ [ Infix (token DivideToken Divide) AssocLeft
+    , Infix (token MultiplyToken Multiply) AssocLeft
     ]
-  , [ Infix (token MinusToken Minus) AssocRight
-    , Infix (token PlusToken Plus) AssocRight
+  , [ Infix (token MinusToken Minus) AssocLeft
+    , Infix (token PlusToken Plus) AssocLeft
     ]
   ]
 
