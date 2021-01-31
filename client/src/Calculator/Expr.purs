@@ -16,14 +16,12 @@ import Prelude
 import Data.Maybe ( Maybe(..) )
 import Data.Foldable ( foldMap )
 import Data.List ( List, fromFoldable )
-import Data.Tuple
+import Data.Tuple ( Tuple, fst, snd )
 import Data.Array ( some, unsnoc, zip, length, (..) )
 import Data.Int ( toNumber )
-import Data.Either ( Either(..) )
-import Data.Enum ( upFromIncluding )
-import Data.Argonaut.Core ( Json, fromNumber, fromString, fromArray, fromObject )
+import Data.Either ( Either )
+import Data.Argonaut.Core ( Json, fromNumber, fromString, fromObject )
 
-import Foreign.Object ( Object )
 import Foreign.Object as Object
 
 import Text.Parsing.Parser ( Parser, ParseError, runParser )
@@ -79,7 +77,7 @@ exprToJSON = case _ of
   Minus left right -> operator "minus" (exprToJSON left) (exprToJSON right)
   Divide left right -> operator "divide" (exprToJSON left) (exprToJSON right)
   Multiply left right -> operator "multiply" (exprToJSON left) (exprToJSON right)
-  NumberExpr n -> number n
+  NumberExpr n -> number_ n
   where
     operator :: String -> Json -> Json -> Json
     operator name left right = fromObject $ Object.empty
@@ -88,8 +86,8 @@ exprToJSON = case _ of
       # Object.insert "left" left
       # Object.insert "right" right
 
-    number :: Number -> Json
-    number n = fromObject $ Object.empty
+    number_ :: Number -> Json
+    number_ n = fromObject $ Object.empty
       # Object.insert "type" (fromString "atom")
       # Object.insert "value" (fromNumber n)
 

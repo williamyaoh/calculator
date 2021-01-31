@@ -49,6 +49,7 @@ render state =
     , HH.form [ HE.onSubmit (Just <<< Submit) ]
       [ HH.input
         [ HP.type_ HP.InputText
+        , HP.placeholder "Name"
         , HP.required true
         , HE.onValueInput (Just <<< UpdateName)
         ]

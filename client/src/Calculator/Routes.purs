@@ -7,7 +7,7 @@ import Prelude hiding ( (/) )
 import Data.Generic.Rep ( class Generic )
 import Data.Generic.Rep.Show ( genericShow )
 
-import Routing.Duplex ( RouteDuplex', path, root, segment, string )
+import Routing.Duplex ( RouteDuplex', root )
 import Routing.Duplex.Generic as G
 import Routing.Duplex.Generic.Syntax ( (/) )
 

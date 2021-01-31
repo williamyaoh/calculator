@@ -2,21 +2,17 @@ module Calculator.Components.Calculator where
 
 import Prelude
 
-import Math as M
-
 import Effect.Class ( liftEffect )
 import Effect.Aff.Class ( class MonadAff )
 
 import Data.Maybe ( Maybe(..), maybe )
 import Data.Either ( Either(..) )
 import Data.Array ( snoc, unsnoc, null )
-import Data.Int ( toNumber, round )
 import Data.Enum ( enumFromTo )
-import Data.Foldable ( foldMap, traverse_ )
+import Data.Foldable ( traverse_ )
 
 import Halogen as H
 import Halogen.HTML as HH
-import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource ( eventListenerEventSource )
 
@@ -28,7 +24,7 @@ import Web.HTML ( window )
 import Web.HTML.Window as Window
 import Web.HTML.HTMLDocument as Document
 
-import Calculator.Expr
+import Calculator.Expr ( Expr, Token(..), displayTokens, exprToJSON, tokensToExpr )
 
 import Effect.Console ( log )
 import Data.Argonaut.Core ( stringifyWithIndent )

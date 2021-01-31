@@ -19,7 +19,6 @@ import Halogen as H
 import Halogen.HTML as HH
 import Halogen.HTML.Core ( ClassName(..) )
 import Halogen.HTML.Properties as HP
-import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource ( eventListenerEventSource )
 
 import Web.Storage.Storage as Storage
@@ -35,6 +34,7 @@ import Calculator.Routes ( Route(..) )
 import Calculator.Calculation ( Calculation, calculationCodec )
 import Calculator.Expr ( Expr )
 import Calculator.API ( evaluate, calculations )
+import Calculator.WebSocket ( calculationSocket )
 import Calculator.Navigate ( class Navigate, navigate )
 import Calculator.LocalStorage ( localStorage )
 import Calculator.Components.Calculator as Calculator
@@ -131,7 +131,7 @@ initCalculations = do
 
 initSocket :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 initSocket = do
-  socket <- liftEffect $ WS.create "ws://localhost:8000/app/socket" []
+  socket <- calculationSocket
   void $ H.subscribe $
     eventListenerEventSource
       onMessage

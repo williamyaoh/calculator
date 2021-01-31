@@ -15,10 +15,23 @@ import Affjax.RequestBody as AJAXB
 
 import Foreign.Object as Object
 
+import Env ( HTTPMethod(..), env )
+
 import Calculator.Expr ( Expr, exprToJSON )
 import Calculator.Calculation ( Calculation, calculationCodec )
 
 type EvalRequest = { user :: String, expr :: Expr }
+
+-- |
+-- Convert an API URL described as just the section after the domain,
+-- into an absolute URL.
+fromSegment :: String -> String
+fromSegment api =
+  methodToString env.httpMethod <> "://" <> env.baseURL <> api
+  where
+    methodToString :: HTTPMethod -> String
+    methodToString HTTP = "http"
+    methodToString HTTPS = "https"
 
 evaluate :: forall m. MonadAff m => EvalRequest -> m (Maybe Calculation)
 evaluate req = do
@@ -26,7 +39,7 @@ evaluate req = do
         # Object.insert "user" (JSON.fromString req.user)
         # Object.insert "expr" (exprToJSON req.expr)
   mResponse <- liftAff $
-    AJAX.post json "/app/api/evaluate" reqBody
+    AJAX.post json (fromSegment "/app/api/evaluate") reqBody
   pure do
     response <- hush mResponse
     hush $ CA.decode calculationCodec response.body
@@ -34,7 +47,7 @@ evaluate req = do
 calculations :: forall m. MonadAff m => m (Maybe (Array Calculation))
 calculations = do
   mResponse <- liftAff $
-    AJAX.get json "/app/api/calculations"
+    AJAX.get json (fromSegment "/app/api/calculations")
   pure do
     response <- hush mResponse
     hush $ CA.decode (CA.array calculationCodec) response.body

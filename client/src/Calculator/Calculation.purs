@@ -9,7 +9,6 @@ import Prim.Row ( class Lacks, class Cons )
 import Data.Symbol ( class IsSymbol, SProxy(..) )
 import Data.Codec as C
 import Data.Codec.Argonaut as CA
-import Data.Codec.Argonaut as CAR
 
 import Record as R
 

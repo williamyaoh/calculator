@@ -2,8 +2,8 @@ module AppM where
 
 import Prelude
 
-import Calculator.Navigate
-import Calculator.Routes
+import Calculator.Navigate ( class Navigate )
+import Calculator.Routes ( routeCodec )
 
 import Effect.Class ( class MonadEffect, liftEffect )
 import Effect.Aff ( Aff )
