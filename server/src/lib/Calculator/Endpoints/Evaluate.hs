@@ -1,26 +1,26 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Calculator.Endpoints.Evaluate where
 
-import Data.Aeson as Aeson
+import Data.Aeson    as Aeson
 import Data.Foldable ( traverse_ )
-import Data.Text ( Text )
+import Data.Text     ( Text )
 
-import Control.Concurrent.MVar ( withMVar )
-import Control.Monad.IO.Class ( liftIO )
+import Control.Concurrent.MVar    ( withMVar )
+import Control.Monad.IO.Class     ( liftIO )
 import Control.Monad.Reader.Class ( asks )
 
 import qualified Network.WebSockets as WS
-import Servant
+import           Servant
 
 import Opaleye
 
-import Calculator.Expr as Expr
 import Calculator.AppM
 import Calculator.Database
+import Calculator.Expr     as Expr
 
 type API = ReqBody '[JSON] Request :> Post '[JSON] Calculation
 

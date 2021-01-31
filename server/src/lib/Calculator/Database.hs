@@ -1,9 +1,9 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances     #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings     #-}
+{-# LANGUAGE TemplateHaskell       #-}
+{-# LANGUAGE TypeFamilies          #-}
+{-# LANGUAGE UndecidableInstances  #-}
 
 module Calculator.Database
   ( CalculationT(..), Calculation
@@ -12,19 +12,19 @@ module Calculator.Database
   )
 where
 
-import Data.Time ( UTCTime )
-import Data.Text ( Text )
-import Data.Int ( Int64 )
-import Data.Profunctor.Product.TH ( makeAdaptorAndInstanceInferrable )
 import Data.Aeson
+import Data.Int                   ( Int64 )
+import Data.Profunctor.Product.TH ( makeAdaptorAndInstanceInferrable )
+import Data.Text                  ( Text )
+import Data.Time                  ( UTCTime )
 
 import Opaleye
 
 data CalculationT a b c d e = Calculation
-  { calculationID :: a
-  , calculationText :: b
-  , calculationResult :: c
-  , calculationUser :: d
+  { calculationID        :: a
+  , calculationText      :: b
+  , calculationResult    :: c
+  , calculationUser      :: d
   , calculationCreatedAt :: e
   }
 type Calculation = CalculationT Int64 Text Double Text UTCTime

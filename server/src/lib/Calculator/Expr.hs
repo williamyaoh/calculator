@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Calculator.Expr
@@ -7,12 +7,12 @@ module Calculator.Expr
   )
 where
 
-import Data.Text ( Text, pack )
 import Data.Aeson
 import Data.Aeson.Types
+import Data.Text        ( Text, pack )
 
 import Control.Applicative ( (<|>) )
-import Control.Monad ( unless )
+import Control.Monad       ( unless )
 
 data Expr
   = Plus Expr Expr
@@ -39,23 +39,23 @@ parseOperator = withObject "Expr[Operator]" $ \obj -> do
   unless (type_ == "operator") $
     fail "incorrect object type"
   op <- case name of
-    "plus" -> pure Plus
-    "minus" -> pure Minus
-    "divide" -> pure Divide
+    "plus"     -> pure Plus
+    "minus"    -> pure Minus
+    "divide"   -> pure Divide
     "multiply" -> pure Multiply
     _otherwise -> fail "unknown operator name"
   op <$> obj .: "left" <*> obj .: "right"
 
 toText :: Expr -> Text
-toText (Plus left right) = toText left <> "+" <> toText right
-toText (Minus left right) = toText left <> "-" <> toText right
-toText (Divide left right) = toText left <> "/" <> toText right
+toText (Plus left right)     = toText left <> "+" <> toText right
+toText (Minus left right)    = toText left <> "-" <> toText right
+toText (Divide left right)   = toText left <> "/" <> toText right
 toText (Multiply left right) = toText left <> "*" <> toText right
-toText (NumberExpr n) = pack (show n)
+toText (NumberExpr n)        = pack (show n)
 
 evaluate :: Expr -> Double
-evaluate (Plus left right) = evaluate left + evaluate right
-evaluate (Minus left right) = evaluate left - evaluate right
-evaluate (Divide left right) = evaluate left / evaluate right
+evaluate (Plus left right)     = evaluate left + evaluate right
+evaluate (Minus left right)    = evaluate left - evaluate right
+evaluate (Divide left right)   = evaluate left / evaluate right
 evaluate (Multiply left right) = evaluate left * evaluate right
-evaluate (NumberExpr n) = n
+evaluate (NumberExpr n)        = n

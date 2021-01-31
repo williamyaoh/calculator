@@ -1,41 +1,41 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE QuasiQuotes #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE PolyKinds         #-}
+{-# LANGUAGE QuasiQuotes       #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Main where
 
+import Data.ByteString         ( ByteString )
+import Data.Foldable           ( traverse_ )
 import Data.String.Interpolate ( i )
-import Data.Foldable ( traverse_ )
-import Data.ByteString ( ByteString )
 
-import Control.Monad ( forever, void )
-import Control.Monad.Error.Class ( MonadError )
-import Control.Concurrent ( threadDelay, forkIO )
+import Control.Concurrent        ( forkIO, threadDelay )
 import Control.Concurrent.MVar
-import Control.Exception ( bracket, catch )
+import Control.Exception         ( bracket, catch )
+import Control.Monad             ( forever, void )
+import Control.Monad.Error.Class ( MonadError )
 
 import GHC.StableName ( StableName, makeStableName )
 
-import Network.HTTP.Types ( status400 )
-import qualified Network.WebSockets as WS
-import Network.Wai ( responseLBS )
-import Network.Wai.Handler.Warp ( run )
-import Network.Wai.Handler.WebSockets
-import Servant
+import           Network.HTTP.Types             ( status400 )
+import           Network.Wai                    ( responseLBS )
+import           Network.Wai.Handler.Warp       ( run )
+import           Network.Wai.Handler.WebSockets
+import qualified Network.WebSockets             as WS
+import           Servant
 
 import Database.PostgreSQL.Simple as PG
 
-import Text.Blaze.Html5 as Blaze hiding ( i, main )
+import           Text.Blaze.Html5            as Blaze hiding ( i, main )
 import qualified Text.Blaze.Html5.Attributes as Blaze
 
-import Calculator.AppM ( AppM, AppConfig(..), runApp )
-import Calculator.Endpoints.HTML
-import qualified Calculator.Endpoints.Evaluate as Evaluate
+import           Calculator.AppM                   ( AppConfig(..), AppM, runApp )
 import qualified Calculator.Endpoints.Calculations as Calculations
+import qualified Calculator.Endpoints.Evaluate     as Evaluate
+import           Calculator.Endpoints.HTML
 
 type SPAEndpoint = Get '[HTML] Blaze.Html
 

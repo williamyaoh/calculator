@@ -1,6 +1,6 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators    #-}
 
 module Calculator.Endpoints.Calculations
   ( API, handler )
@@ -8,7 +8,7 @@ where
 
 import Data.Function ( (&) )
 
-import Control.Monad.IO.Class ( liftIO )
+import Control.Monad.IO.Class     ( liftIO )
 import Control.Monad.Reader.Class ( asks )
 
 import Servant
