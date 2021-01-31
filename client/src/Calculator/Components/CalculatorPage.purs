@@ -2,10 +2,13 @@ module Calculator.Components.CalculatorPage where
 
 import Prelude
 
-import Data.Maybe ( Maybe(..) )
+import Data.Array as Array
+import Data.Maybe ( Maybe(..), fromMaybe )
 import Data.Either ( Either(..) )
 import Data.Foldable ( traverse_ )
 import Data.Symbol ( SProxy(..) )
+import Data.Argonaut.Parser as JSON
+import Data.Codec as C
 
 import Control.Monad.Except ( runExcept )
 
@@ -14,17 +17,12 @@ import Effect.Aff.Class ( class MonadAff )
 
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Core ( ClassName(..) )
 import Halogen.HTML.Properties as HP
 import Halogen.HTML.Events as HE
 import Halogen.Query.EventSource ( eventListenerEventSource )
 
-import Web.HTML ( window )
-import Web.HTML.Window as Window
-import Web.HTML.HTMLDocument as Document
 import Web.Storage.Storage as Storage
-import Web.Event.Event ( preventDefault )
-import Web.UIEvent.KeyboardEvent as KB
-import Web.UIEvent.KeyboardEvent.EventTypes as KBE
 import Web.Socket.WebSocket as WS
 import Web.Socket.Event.EventTypes ( onMessage )
 import Web.Socket.Event.MessageEvent as WSM
@@ -34,23 +32,22 @@ import Foreign as F
 import Effect.Console ( log )
 
 import Calculator.Routes ( Route(..) )
+import Calculator.Calculation ( Calculation, calculationCodec )
 import Calculator.Expr ( Expr )
-import Calculator.API ( evaluate )
+import Calculator.API ( evaluate, calculations )
 import Calculator.Navigate ( class Navigate, navigate )
 import Calculator.LocalStorage ( localStorage )
 import Calculator.Components.Calculator as Calculator
 
 type State =
-  { calculation :: String
-  , name        :: String
-  , conn        :: Maybe WS.WebSocket
+  { conn         :: Maybe WS.WebSocket
+  , name         :: String
+  , calculations :: Array Calculation
   }
 
 data Action
   = Initialize
   | Finalize
-  | Keydown KB.KeyboardEvent
-  | Keypress KB.KeyboardEvent
   | Message WSM.MessageEvent
   | EvalRequest Expr
 
@@ -63,9 +60,9 @@ component :: forall q i o m.
           => H.Component HH.HTML q i o m
 component = H.mkComponent
   { initialState: const
-    { calculation: ""
+    { conn: Nothing
     , name: ""
-    , conn: Nothing
+    , calculations: []
     }
   , render
   , eval: H.mkEval $ H.defaultEval
@@ -77,7 +74,13 @@ component = H.mkComponent
 
 render :: forall m. MonadAff m => State -> H.ComponentHTML Action Slots m
 render state =
-  HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery)
+  HH.div_
+    [ HH.main [ HP.id_ "calculator" ]
+      [ HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery) ]
+    , HH.aside [ HP.id_ "calculation-history" ] $
+      [ HH.ul_ $ map displayCalculation state.calculations ]
+    ]
+
   where mapQuery :: Calculator.Output -> Action
         mapQuery (Calculator.EvalRequest expr) = EvalRequest expr
 
@@ -89,22 +92,21 @@ handleAction :: forall o m.
 handleAction = case _ of
   Initialize -> do
     checkName
+    initCalculations
     initSocket
-    subscribeEvents
   Finalize -> do
     mConn <- H.gets _.conn
     liftEffect $ traverse_ WS.close mConn
-  Keydown e ->
-    -- To intercept forward slash before it's handled by the browser.
-    when (KB.key e == "/") do
-      liftEffect $ preventDefault $ KB.toEvent e
-  Keypress e -> do
-    liftEffect $ preventDefault $ KB.toEvent e
-    liftEffect $ log $ KB.key e
-  Message m -> do
-    liftEffect $ case runExcept (F.readString $ WSM.data_ m) of
-      Left errs -> log (show errs)
-      Right s -> log s
+  Message m ->
+    case runExcept (F.readString $ WSM.data_ m) of
+      Left errs -> liftEffect $ log $ show errs
+      Right s -> case JSON.jsonParser s of
+        Left err -> liftEffect $ log err
+        Right json -> case C.decode calculationCodec json of
+          Left err -> liftEffect $ log $ show err
+          Right calc -> do
+            calcs <- H.gets _.calculations
+            H.modify_ _ { calculations = Array.take 10 $ Array.cons calc calcs }
   EvalRequest expr -> do
     name <- H.gets _.name
     mCalc <- evaluate { user: name, expr }
@@ -122,9 +124,12 @@ checkName = do
     Nothing -> navigate SelfIntro
     Just name -> H.modify_ _ { name = name }
 
-initSocket :: forall o m.
-              MonadAff m
-           => H.HalogenM State Action Slots o m Unit
+initCalculations :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
+initCalculations = do
+  calcs <- calculations
+  H.modify_ _ { calculations = Array.take 10 $ fromMaybe [] calcs }
+
+initSocket :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 initSocket = do
   socket <- liftEffect $ WS.create "ws://localhost:8000/app/socket" []
   void $ H.subscribe $
@@ -134,35 +139,13 @@ initSocket = do
       (map Message <<< WSM.fromEvent)
   H.modify_ _ { conn = Just socket }
 
-subscribeEvents :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
-subscribeEvents = do
-  document <- liftEffect $ Window.document =<< window
-  void $ H.subscribe $
-    eventListenerEventSource
-    KBE.keydown
-    (Document.toEventTarget document)
-    (map Keydown <<< KB.fromEvent)
-  void $ H.subscribe $
-    eventListenerEventSource
-    KBE.keyup
-    (Document.toEventTarget document)
-    (map Keypress <<< KB.fromEvent)
+displayCalculation :: forall a slots m. Calculation -> H.ComponentHTML a slots m
+displayCalculation calc =
+  HH.li [ HP.class_ (ClassName "calculation") ]
+    [ HH.span [ HP.class_ (ClassName "calculation-user") ] [ HH.text calc.user ]
+    , HH.span [ HP.class_ (ClassName "calculation-bar") ] []
+    , HH.span [ HP.class_ (ClassName "calculation-text") ] [ HH.text calc.text ]
+    , HH.span [ HP.class_ (ClassName "calculation-result") ] [ HH.text $ "= " <> show calc.result ]
+    ]
 
--- So if we look at the design of this calculator thing, we've got a few
--- components that we need to put together:
---
--- * The internal design of our expressions -- clearly we don't want
---   to just store them as strings. probably we want some sort of tree structure
---   in fact, we want both the individual tokens to list + the tree structure
--- * The display of the calculator itself, which shows the current list of tokens
--- * The buttons, which need to respond to both clicking them and to hitting
---   the keyboard, and which add a token to our thing... or update the current one
--- * Algorithm to take our list of tokens and turn them into RPN/tree, which
---   is basically just the shunting yard algorithm
--- * A display of the previous calculations, which is a simple string display...
---   Except for one extra thing, which is showing the name + a colored bar
---     and we also want to align the results properly
 -- * A "hashing" function from names to colors
-
--- Hook up the keyboard events to the calculator itself, so that it actually
---  does stuff...
