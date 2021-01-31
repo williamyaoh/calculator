@@ -11,7 +11,6 @@ module Main where
 import Data.String.Interpolate ( i )
 import Data.Foldable ( traverse_ )
 import Data.ByteString ( ByteString )
-import Data.Text ( Text )
 
 import Control.Monad ( forever, void )
 import Control.Monad.Error.Class ( MonadError )
@@ -53,10 +52,14 @@ type API =
 type Connections = [(StableName WS.Connection, WS.Connection)]
 
 spa :: AppM Blaze.Html
-spa = pure $! docTypeHtml $ do
+spa = pure $! docTypeHtml ! Blaze.lang "en" $ do
   Blaze.head $ do
     title $ toHtml @String "CALC-U-LATOR 3XXX"
+    Blaze.meta ! Blaze.charset "utf-8"
+    Blaze.meta ! Blaze.httpEquiv "x-ua-compatible" ! Blaze.content "ie=edge"
     Blaze.script ! Blaze.async "" ! Blaze.src "/app/bundle/index.js" $ mempty
+    Blaze.link ! Blaze.rel "stylesheet" ! Blaze.href "https://fonts.googleapis.com/css?family=Raleway|Fira+Mono"
+    Blaze.link ! Blaze.rel "stylesheet" ! Blaze.href "/app/bundle/main.css"
   Blaze.body mempty
 
 serverP :: Proxy API
@@ -115,7 +118,6 @@ keepAlive conns = go 0
         putStrLn [i|current \# of open clients: #{length conns}|]
         flip traverse_ conns $ \(_, conn) -> do
           WS.sendPing conn ([i|#{n}|] :: ByteString)
-          WS.sendTextData conn ([i|hello!|] :: Text)
       go (n+1)
 
 --------------------------------------------------------------------------------

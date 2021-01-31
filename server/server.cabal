@@ -28,18 +28,18 @@ library
                -Wnoncanonical-monad-instances -fno-warn-name-shadowing
   build-depends:
       base ==4.*
-    , http-media
-    , servant-server
-    , servant
-    , blaze-html
     , aeson
-    , text
+    , blaze-html
+    , http-media
+    , mtl
     , opaleye
+    , postgresql-simple
     , product-profunctors
+    , servant
+    , servant-server
+    , text
     , time
     , transformers
-    , mtl
-    , postgresql-simple
     , websockets
   default-language: Haskell2010
 
@@ -51,17 +51,16 @@ executable server-exe
                -Wnoncanonical-monad-instances -fno-warn-name-shadowing
   build-depends:
       base ==4.*
-    , server
-    , servant-server
-    , warp
     , blaze-html
-    , string-interpolate
-    , websockets
-    , wai-websockets
-    , wai
-    , http-types
     , bytestring
-    , text
-    , postgresql-simple
+    , http-types
     , mtl
+    , postgresql-simple
+    , servant-server
+    , server
+    , string-interpolate
+    , wai
+    , wai-websockets
+    , warp
+    , websockets
   default-language: Haskell2010
