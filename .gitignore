@@ -3,6 +3,10 @@
 *~
 #*#
 
+# Terraform. Normally this would be in VC, but it has personal stuff
+# in it, so...
+terraform/
+
 # Haskell build outputs
 
 .stack-work/

@@ -32,6 +32,8 @@ import Database.PostgreSQL.Simple as PG
 import           Text.Blaze.Html5            as Blaze hiding ( i, main )
 import qualified Text.Blaze.Html5.Attributes as Blaze
 
+import Env ( Env(..), env )
+
 import           Calculator.AppM                   ( AppConfig(..), AppM, runApp )
 import qualified Calculator.Endpoints.Calculations as Calculations
 import qualified Calculator.Endpoints.Evaluate     as Evaluate
@@ -120,26 +122,15 @@ keepAlive conns = go 0
           WS.sendPing conn ([i|#{n}|] :: ByteString)
       go (n+1)
 
---------------------------------------------------------------------------------
-
-connInfo :: PG.ConnectInfo
-connInfo = PG.ConnectInfo
-  { connectPort = 5432
-  , connectHost = "localhost"
-  , connectDatabase = "calculator"
-  , connectUser = "william"
-  , connectPassword = "password"
-  }
-
 main :: IO ()
 main = do
   putStrLn "starting calculator server on localhost:8000..."
   clients <- newMVar []
   void $ forkIO $ keepAlive clients
-  bracket (PG.connect connInfo) PG.close $ \conn -> do
+  bracket (PG.connectPostgreSQL $ envDBString env) PG.close $ \conn -> do
     let cfg = AppConfig
           { appDB = conn
           , appClients = clients
           }
-    run 8000 $ serve serverP $
+    run (envPort env) $ serve serverP $
       hoistServer serverP (runApp cfg) $ server clients

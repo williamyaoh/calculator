@@ -17,32 +17,42 @@ main = shakeArgs shakeOptions { shakeFiles = outputDir, shakeVerbosity = Verbose
     command_ [ Cwd outputDir ] "./server" []
 
   phony "bundle-dev" $ do
-    need [ "client-dev"
-         , outputDir </> "server"
-         ]
+    need [ "client-dev", "server-dev" ]
 
   phony "bundle-prod" $ do
-    need [ "client-prod"
-         , outputDir </> "server"
-         ]
+    need [ "client-prod", "server-prod" ]
 
-  outputDir </> "server" %> \file -> do
-    need ["./server/server.cabal"]
+  phony "client-dev" $ produceJSBundle Dev
+  phony "client-prod" $ produceJSBundle Prod
 
-    command_ [Cwd "./server/"] "cabal"
+  phony "server-dev" $ produceServer Dev
+  phony "server-prod" $ produceServer Prod
+
+  outputDir </> "bundle/main.css" %> \file -> do
+    copyFileChanged "./client/css/main.css" file
+
+produceServer :: BuildEnv -> Action ()
+produceServer env = do
+  need ["./server/server.cabal"]
+
+  case env of
+    Dev -> command_ [Cwd "./server/"] "cabal"
       [ "v2-install"
       , "server-exe"
       , "--installdir=."
       , "--install-method=copy"
       , "--overwrite-policy=always"
       ]
-    copyFileChanged "./server/server-exe" file
+    Prod -> command_ [Cwd "./server/"] "cabal"
+      [ "v2-install"
+      , "-fprod"
+      , "server-exe"
+      , "--installdir=."
+      , "--install-method=copy"
+      , "--overwrite-policy=always"
+      ]
 
-  phony "client-dev" $ produceJSBundle Dev
-  phony "client-prod" $ produceJSBundle Prod
-
-  outputDir </> "bundle/main.css" %> \file -> do
-    copyFileChanged "./client/css/main.css" file
+  copyFileChanged "./server/server-exe" $ outputDir </> "server"
 
 produceJSBundle :: BuildEnv -> Action ()
 produceJSBundle env = do
