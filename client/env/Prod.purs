@@ -13,7 +13,7 @@ type Env =
 env :: Env
 env =
   { title: "CALC-U-LATOR 3000"
-  , baseURL: "calculator.heroku.com"
+  , baseURL: "calculator.williamyaoh.com"
   , wsMethod: WSS
   , httpMethod: HTTPS
   }
