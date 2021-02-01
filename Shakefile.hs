@@ -12,6 +12,10 @@ main :: IO ()
 main = shakeArgs shakeOptions { shakeFiles = outputDir, shakeVerbosity = Verbose } $ do
   want [ "bundle-dev" ]
 
+  phony "run" $ do
+    need [ "bundle-dev" ]
+    command_ [ Cwd outputDir ] "./server" []
+
   phony "bundle-dev" $ do
     need [ "client-dev"
          , outputDir </> "server"
