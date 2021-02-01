@@ -42,9 +42,3 @@ main = HA.runHalogenAff do
   void $ liftEffect $ matchesWith (parse routeCodec) \old new ->
     when (old /= Just new) do
       launchAff_ $ halogenIO.query $ H.tell $ Router.Navigate new
-
--- TODO: add some css
--- TODO: set up a Shakefile for all this
--- TODO: set up a Heroku buildpack for all this
--- TODO: handle division by zero, probably by signalling an error
--- TODO: once we're done, go back through and remove any unnecessary logs and imports
