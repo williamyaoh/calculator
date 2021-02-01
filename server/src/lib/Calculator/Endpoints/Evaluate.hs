@@ -18,6 +18,8 @@ import           Servant
 
 import Opaleye
 
+import Control.Exception
+
 import Calculator.AppM
 import Calculator.Database
 import Calculator.Expr     as Expr
@@ -55,7 +57,8 @@ propagateCalc calc = do
   clients <- asks appClients
   liftIO $ withMVar clients $
     traverse_ $ \(_, conn) ->
-      WS.sendTextData conn $ Aeson.encode calc
+      catch (WS.sendTextData conn $ Aeson.encode calc)
+        (\e -> let _ = e :: SomeException in pure ())
 
 insertCalc :: CalculationWrite -> AppM Calculation
 insertCalc cw = do
