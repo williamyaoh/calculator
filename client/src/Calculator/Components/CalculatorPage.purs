@@ -72,13 +72,20 @@ component = H.mkComponent
     }
   }
 
+-- Funnily enough, the calculation history here is... an actual table of data!
+-- Which makes using HTML tables here justified.
+
 render :: forall m. MonadAff m => State -> H.ComponentHTML Action Slots m
 render state =
-  HH.div_
+  HH.div [ HP.id_ "calculator-page" ]
     [ HH.main [ HP.id_ "calculator" ]
-      [ HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery) ]
+      [ HH.h2_ [ HH.text $ "Hi, " <> state.name <> "!" ]
+      , HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery)
+      ]
     , HH.aside [ HP.id_ "calculation-history" ] $
-      [ HH.ul_ $ map displayCalculation state.calculations ]
+      [ HH.h2_ [ HH.text "Previous calculations" ]
+      , HH.table_ $ map displayCalculation state.calculations
+      ]
     ]
 
   where mapQuery :: Calculator.Output -> Action
@@ -141,11 +148,11 @@ initSocket = do
 
 displayCalculation :: forall a slots m. Calculation -> H.ComponentHTML a slots m
 displayCalculation calc =
-  HH.li [ HP.class_ (ClassName "calculation") ]
-    [ HH.span [ HP.class_ (ClassName "calculation-user") ] [ HH.text calc.user ]
-    , HH.span [ HP.class_ (ClassName "calculation-bar") ] []
-    , HH.span [ HP.class_ (ClassName "calculation-text") ] [ HH.text calc.text ]
-    , HH.span [ HP.class_ (ClassName "calculation-result") ] [ HH.text $ "= " <> show calc.result ]
+  HH.tr [ HP.class_ (ClassName "calculation") ]
+    [ HH.td [ HP.class_ (ClassName "calculation-user") ] [ HH.text calc.user ]
+    , HH.td [ HP.class_ (ClassName "calculation-text") ] [ HH.text calc.text ]
+    , HH.td [ HP.class_ (ClassName "calculation-equals") ] [ HH.text "=" ]
+    , HH.td [ HP.class_ (ClassName "calculation-result") ] [ HH.text $ show calc.result ]
     ]
 
 -- * A "hashing" function from names to colors

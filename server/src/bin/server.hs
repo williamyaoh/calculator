@@ -54,11 +54,11 @@ type Connections = [(StableName WS.Connection, WS.Connection)]
 spa :: AppM Blaze.Html
 spa = pure $! docTypeHtml ! Blaze.lang "en" $ do
   Blaze.head $ do
-    title $ toHtml @String "CALC-U-LATOR 3XXX"
+    title $ toHtml @String "CALC-U-LATOR 3000"
     Blaze.meta ! Blaze.charset "utf-8"
     Blaze.meta ! Blaze.httpEquiv "x-ua-compatible" ! Blaze.content "ie=edge"
     Blaze.script ! Blaze.async "" ! Blaze.src "/app/bundle/index.js" $ mempty
-    Blaze.link ! Blaze.rel "stylesheet" ! Blaze.href "https://fonts.googleapis.com/css?family=Raleway|Fira+Mono"
+    Blaze.link ! Blaze.rel "stylesheet" ! Blaze.href "https://fonts.googleapis.com/css?family=Raleway:normal,bold|Major+Mono+Display"
     Blaze.link ! Blaze.rel "stylesheet" ! Blaze.href "/app/bundle/main.css"
   Blaze.body mempty
 

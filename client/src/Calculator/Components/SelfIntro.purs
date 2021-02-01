@@ -44,12 +44,12 @@ component = H.mkComponent
 
 render :: forall m. State -> H.ComponentHTML Action Slots m
 render state =
-  HH.div_
-    [ HH.text state.name
+  HH.div [ HP.id_ "self-intro" ]
+    [ HH.h1_ [ HH.text "Hi there! What's your name?" ]
     , HH.form [ HE.onSubmit (Just <<< Submit) ]
       [ HH.input
         [ HP.type_ HP.InputText
-        , HP.placeholder "Name"
+        , HP.placeholder "Your name"
         , HP.required true
         , HE.onValueInput (Just <<< UpdateName)
         ]

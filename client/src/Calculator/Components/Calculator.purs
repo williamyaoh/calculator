@@ -13,7 +13,9 @@ import Data.Foldable ( traverse_ )
 
 import Halogen as H
 import Halogen.HTML as HH
+import Halogen.HTML.Core ( ClassName(..) )
 import Halogen.HTML.Events as HE
+import Halogen.HTML.Properties as HP
 import Halogen.Query.EventSource ( eventListenerEventSource )
 
 import Web.Event.Event ( preventDefault )
@@ -60,27 +62,38 @@ component = H.mkComponent
 
 button :: forall m.
           String
-       -> Boolean
        -> (MouseEvent -> Maybe Action)
        -> H.ComponentHTML Action Slots m
-button label pressed onPress =
-  HH.button [ HE.onClick onPress ] [ HH.text label ]
+button label onPress =
+  HH.td_ [ HH.button [ HE.onClick onPress ] [ HH.text label ] ]
 
 render :: forall m. State -> H.ComponentHTML Action Slots m
 render state =
-  HH.div_
-    [ HH.div_ [ HH.text $ displayTokens state.tokens ]
-    , HH.div_ $
-        flip map (enumFromTo 0 9) (\i ->
-          button (show i) false (const $ Just $ NewToken $ DigitToken i))
-        <> [ button "+" false (const $ Just $ NewToken PlusToken)
-           , button "-" false (const $ Just $ NewToken MinusToken)
-           , button "×" false (const $ Just $ NewToken MultiplyToken)
-           , button "÷" false (const $ Just $ NewToken DivideToken)
-           , button "⌫" false (const $ Just $ Delete)
-           , button "=" false (const $ Just $ Evaluate)
-           ]
+  HH.div [ HP.id_ "calculator-body" ]
+    [ HH.div [ HP.class_ (ClassName "display") ]
+      [ HH.text $ displayTokens state.tokens ]
+    , HH.div [ HP.class_ (ClassName "button-grid") ] $
+      [ HH.table_
+        [ HH.tr_ $ digitButtonsFromTo 7 9 <>
+                     [ button "+" (const $ Just $ NewToken PlusToken) ]
+        , HH.tr_ $ digitButtonsFromTo 4 6 <>
+                     [ button "-" (const $ Just $ NewToken MinusToken) ]
+        , HH.tr_ $ digitButtonsFromTo 1 3 <>
+                     [ button "×" (const $ Just $ NewToken MultiplyToken) ]
+        , HH.tr_
+          [ button "0" (const $ Just $ NewToken $ DigitToken 0)
+          , button "=" (const $ Just $ Evaluate)
+          , button "⌫" (const $ Just $ Delete)
+          , button "÷" (const $ Just $ NewToken DivideToken)
+          ]
+        ]
+      ]
     ]
+  where
+    digitButtonsFromTo :: Int -> Int -> Array (H.ComponentHTML Action Slots m)
+    digitButtonsFromTo from to =
+      flip map (enumFromTo from to) (\i ->
+        button (show i) (const $ Just $ NewToken $ DigitToken i))
 
 handleAction :: forall m. MonadAff m => Action -> H.HalogenM State Action Slots Output m Unit
 handleAction = case _ of
