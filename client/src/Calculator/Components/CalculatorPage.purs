@@ -118,7 +118,8 @@ handleAction = case _ of
     name <- H.gets _.name
     mCalc <- evaluate { user: name, expr }
     case mCalc of
-      Nothing -> liftEffect $ log "something went wrong with evaluating"
+      Nothing ->
+        void $ H.query (SProxy :: _ "calculator") unit (H.tell Calculator.Error)
       Just calc ->
         void $ H.query (SProxy :: _ "calculator") unit (H.tell $ Calculator.Result calc.result)
 
@@ -135,6 +136,7 @@ checkName = do
 initCalculations :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 initCalculations = do
   calcs <- calculations
+  liftEffect $ log $ show calcs
   H.modify_ _ { calculations = Array.take 10 $ fromMaybe [] calcs }
 
 initSocket :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit

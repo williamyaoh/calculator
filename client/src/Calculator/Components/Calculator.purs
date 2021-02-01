@@ -46,7 +46,9 @@ data Action
   | Keydown KB.KeyboardEvent
   | Keypress KB.KeyboardEvent
 
-data Query a = Result Number a
+data Query a
+  = Result Number a
+  | Error a
 
 newtype Output = EvalRequest Expr
 
@@ -132,6 +134,9 @@ handleQuery :: forall m a. Query a -> H.HalogenM State Action Slots Output m (Ma
 handleQuery = case _ of
   Result n a -> do
     H.modify_ _ { display = DisplayResult n }
+    pure $ Just a
+  Error a -> do
+    H.modify_ _ { display = DisplayError }
     pure $ Just a
 
 subscribeEvents :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit

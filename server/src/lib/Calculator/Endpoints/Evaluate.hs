@@ -40,14 +40,15 @@ instance FromJSON Request where
 handler :: Request -> AppM Calculation
 handler req = do
   let result = Expr.evaluate $ reqExpr req
-      text = Expr.toText $ reqExpr req
-      toWrite = Calculation
-        () (sqlStrictText text) (sqlDouble result) (sqlStrictText $ reqUser req) ()
-  calc <- insertCalc toWrite
-
-  propagateCalc calc
-
-  pure $! calc
+  if isInfinite result || isNaN result
+    then throwError err400
+    else do
+      let text = Expr.toText $ reqExpr req
+          toWrite = Calculation
+            () (sqlStrictText text) (sqlDouble result) (sqlStrictText $ reqUser req) ()
+      calc <- insertCalc toWrite
+      propagateCalc calc
+      pure $! calc
 
 propagateCalc :: Calculation -> AppM ()
 propagateCalc calc = do
