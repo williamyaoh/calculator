@@ -11,6 +11,7 @@ module Main where
 import Data.ByteString         ( ByteString )
 import Data.Foldable           ( traverse_ )
 import Data.String.Interpolate ( i )
+import Data.Function           ( (&) )
 
 import Control.Concurrent        ( forkIO, threadDelay )
 import Control.Concurrent.MVar
@@ -22,7 +23,7 @@ import GHC.StableName ( StableName, makeStableName )
 
 import           Network.HTTP.Types             ( status400 )
 import           Network.Wai                    ( responseLBS )
-import           Network.Wai.Handler.Warp       ( run )
+import qualified Network.Wai.Handler.Warp       as Warp
 import           Network.Wai.Handler.WebSockets
 import qualified Network.WebSockets             as WS
 import           Servant
@@ -132,5 +133,9 @@ main = do
           { appDB = conn
           , appClients = clients
           }
-    run (envPort env) $ serve serverP $
+    Warp.runSettings settings $ serve serverP $
       hoistServer serverP (runApp cfg) $ server clients
+  where settings :: Warp.Settings
+        settings = Warp.defaultSettings
+          & Warp.setPort (envPort env)
+          & Warp.setHost "0.0.0.0"
