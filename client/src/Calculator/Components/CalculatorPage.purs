@@ -84,7 +84,10 @@ render state =
       ]
     , HH.aside [ HP.id_ "calculation-history" ] $
       [ HH.h2_ [ HH.text "Previous calculations" ]
-      , HH.table_ $ map displayCalculation state.calculations
+      , if Array.null state.calculations
+          then HH.div [ HP.style "text-align: center;" ]
+                 [ HH.text "No calculations yet. Try running some!" ]
+          else HH.table_ $ map displayCalculation state.calculations
       ]
     ]
 
@@ -136,7 +139,6 @@ checkName = do
 initCalculations :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 initCalculations = do
   calcs <- calculations
-  liftEffect $ log $ show calcs
   H.modify_ _ { calculations = Array.take 10 $ fromMaybe [] calcs }
 
 initSocket :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit

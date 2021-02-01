@@ -7,10 +7,15 @@
 
 .stack-work/
 dist-newstyle/
+/server/server-exe
 
 # PureScript build outputs
 
 .spago
 .psci-modules
 /client/output/
-/server/bundle/
+/client/index.js
+
+# Bundle outputs
+
+/output/
