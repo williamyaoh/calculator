@@ -26,14 +26,16 @@ import Web.HTML ( window )
 import Web.HTML.Window as Window
 import Web.HTML.HTMLDocument as Document
 
-import Calculator.Expr ( Expr, Token(..), displayTokens, exprToJSON, tokensToExpr )
+import Calculator.Expr ( Expr, Token(..), displayTokens, tokensToExpr )
 
-import Effect.Console ( log )
-import Data.Argonaut.Core ( stringifyWithIndent )
-
+data Display
+  = DisplayResult Number
+  | DisplayError
+  | DisplayTokens
 
 type State =
   { tokens :: Array Token
+  , display :: Display
   }
 
 data Action
@@ -44,19 +46,23 @@ data Action
   | Keydown KB.KeyboardEvent
   | Keypress KB.KeyboardEvent
 
+data Query a = Result Number a
+
 newtype Output = EvalRequest Expr
 
 type Slots = ()
 
-component :: forall q i m. MonadAff m => H.Component HH.HTML q i Output m
+component :: forall i m. MonadAff m => H.Component HH.HTML Query i Output m
 component = H.mkComponent
   { initialState: const
     { tokens: []
+    , display: DisplayTokens
     }
   , render
   , eval: H.mkEval $ H.defaultEval
     { initialize = Just Initialize
     , handleAction = handleAction
+    , handleQuery = handleQuery
     }
   }
 
@@ -71,7 +77,11 @@ render :: forall m. State -> H.ComponentHTML Action Slots m
 render state =
   HH.div [ HP.id_ "calculator-body" ]
     [ HH.div [ HP.class_ (ClassName "display") ]
-      [ HH.text $ displayTokens state.tokens ]
+      [ HH.text $ case state.display of
+          DisplayTokens -> displayTokens state.tokens
+          DisplayError -> "error"
+          DisplayResult n -> show n
+      ]
     , HH.div [ HP.class_ (ClassName "button-grid") ] $
       [ HH.table_
         [ HH.tr_ $ digitButtonsFromTo 7 9 <>
@@ -99,18 +109,17 @@ handleAction :: forall m. MonadAff m => Action -> H.HalogenM State Action Slots 
 handleAction = case _ of
   Initialize -> subscribeEvents
   NewToken tok -> H.modify_ \st ->
-    st { tokens = snoc st.tokens tok }
+    st { tokens = snoc st.tokens tok, display = DisplayTokens }
   Delete -> H.modify_ \st ->
     st { tokens = maybe st.tokens _.init $ unsnoc st.tokens }
   Evaluate -> do
     tok <- H.gets _.tokens
     unless (null tok) do
       case tokensToExpr tok of
-        Left err -> liftEffect $ log $ show err
+        Left _err -> H.modify_ _ { tokens = [], display = DisplayError }
         Right expr -> do
-          liftEffect $ log $ stringifyWithIndent 2 $ exprToJSON expr
+          H.modify_ _ { tokens = [] }
           H.raise (EvalRequest expr)
-      H.modify_ _ { tokens = [] }
   Keydown e ->
     -- To intercept forward slash before it's handled by the browser.
     when (KB.key e == "/") do
@@ -118,6 +127,12 @@ handleAction = case _ of
   Keypress e -> do
     liftEffect $ preventDefault $ KB.toEvent e
     traverse_ handleAction (keypressToAction $ KB.key e)
+
+handleQuery :: forall m a. Query a -> H.HalogenM State Action Slots Output m (Maybe a)
+handleQuery = case _ of
+  Result n a -> do
+    H.modify_ _ { display = DisplayResult n }
+    pure $ Just a
 
 subscribeEvents :: forall o m. MonadAff m => H.HalogenM State Action Slots o m Unit
 subscribeEvents = do

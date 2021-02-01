@@ -52,7 +52,7 @@ data Action
   | EvalRequest Expr
 
 type Slots =
-  ( calculator :: forall query. H.Slot query Calculator.Output Unit )
+  ( calculator :: H.Slot Calculator.Query Calculator.Output Unit )
 
 component :: forall q i o m.
              MonadAff m
@@ -80,7 +80,7 @@ render state =
   HH.div [ HP.id_ "calculator-page" ]
     [ HH.main [ HP.id_ "calculator" ]
       [ HH.h2_ [ HH.text $ "Hi, " <> state.name <> "!" ]
-      , HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapQuery)
+      , HH.slot (SProxy :: _ "calculator") unit Calculator.component unit (Just <<< mapOutput)
       ]
     , HH.aside [ HP.id_ "calculation-history" ] $
       [ HH.h2_ [ HH.text "Previous calculations" ]
@@ -88,8 +88,8 @@ render state =
       ]
     ]
 
-  where mapQuery :: Calculator.Output -> Action
-        mapQuery (Calculator.EvalRequest expr) = EvalRequest expr
+  where mapOutput :: Calculator.Output -> Action
+        mapOutput (Calculator.EvalRequest expr) = EvalRequest expr
 
 handleAction :: forall o m.
                 MonadAff m
@@ -119,7 +119,8 @@ handleAction = case _ of
     mCalc <- evaluate { user: name, expr }
     case mCalc of
       Nothing -> liftEffect $ log "something went wrong with evaluating"
-      Just calc -> liftEffect $ log $ show calc
+      Just calc ->
+        void $ H.query (SProxy :: _ "calculator") unit (H.tell $ Calculator.Result calc.result)
 
 checkName :: forall o m.
              MonadAff m
@@ -154,5 +155,3 @@ displayCalculation calc =
     , HH.td [ HP.class_ (ClassName "calculation-equals") ] [ HH.text "=" ]
     , HH.td [ HP.class_ (ClassName "calculation-result") ] [ HH.text $ show calc.result ]
     ]
-
--- * A "hashing" function from names to colors
