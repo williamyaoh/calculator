@@ -3,8 +3,6 @@
 Calculator SPA in PureScript and Haskell. Displays previous calculations that
 other people have made. Works with the keyboard too!
 
-Check it out at [calculator.williamyaoh.com](https://calculator.williamyaoh.com).
-
 ## Building and running
 
 To build and run, you'll need the following things installed:
